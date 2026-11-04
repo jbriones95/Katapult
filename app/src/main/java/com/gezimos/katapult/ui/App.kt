@@ -6,12 +6,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.gezimos.katapult.R
 import androidx.compose.ui.unit.dp
 import com.gezimos.katapult.MainViewModel
 import com.gezimos.katapult.Screen
+import com.gezimos.katapult.util.PrefsManager
 
 @Composable
 fun App(
@@ -27,9 +29,17 @@ fun App(
         com.gezimos.katapult.util.PrefsManager.THEME_SYSTEM -> isSystemInDarkTheme()
         else -> false
     }
+    val metrics = UiMetrics.forConfiguration(LocalConfiguration.current)
+    // Keep the user's small/large choice, but map it onto a size that fits a square screen.
+    val iconSize = if (metrics.compact) {
+        if (viewModel.iconSize >= PrefsManager.ICON_SIZE_LARGE) 64.dp else 56.dp
+    } else {
+        viewModel.iconSize.dp
+    }
     CompositionLocalProvider(
         androidx.compose.foundation.LocalIndication provides NoIndication,
-        LocalIconSize provides viewModel.iconSize.dp,
+        LocalUiMetrics provides metrics,
+        LocalIconSize provides iconSize,
         LocalIconShape provides iconShape,
         LocalSmallIconShape provides smallShape,
         LocalBadgeShape provides badgeShape,

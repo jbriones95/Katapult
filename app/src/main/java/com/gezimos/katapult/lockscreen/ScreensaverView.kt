@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
@@ -58,7 +59,8 @@ import com.gezimos.katapult.ui.LocalIconFilter
 import com.gezimos.katapult.ui.LocalIconShape
 import com.gezimos.katapult.ui.LocalInk
 import com.gezimos.katapult.ui.LocalSurface
-import com.gezimos.katapult.ui.PagePadding
+import com.gezimos.katapult.ui.LocalUiMetrics
+import com.gezimos.katapult.ui.UiMetrics
 import com.gezimos.katapult.util.BitmapHelper
 import com.gezimos.katapult.util.DeviceHelper
 import com.gezimos.katapult.util.IconUtility
@@ -184,7 +186,9 @@ fun ScreensaverView() {
     }
 
     val iconShape = if (prefs.roundedIcons) RoundedCornerShape(8.dp) else CircleShape
+    val metrics = UiMetrics.forConfiguration(LocalConfiguration.current)
     CompositionLocalProvider(
+        LocalUiMetrics provides metrics,
         LocalIconShape provides iconShape,
         LocalInk provides if (dark) Color.White else Color.Black,
         LocalSurface provides if (dark) Color.Black else Color.White,
@@ -214,7 +218,7 @@ fun ScreensaverView() {
                 modifier = Modifier
                     .fillMaxSize()
                     .then(if (!prefs.hideStatusBar) Modifier.statusBarsPadding() else Modifier)
-                    .padding(PagePadding),
+                    .padding(metrics.pagePadding),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
                 if (prefs.screensaverShowClock) {

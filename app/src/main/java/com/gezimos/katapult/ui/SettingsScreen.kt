@@ -84,6 +84,7 @@ import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -113,6 +114,7 @@ private fun formatLabel(pattern: String): String =
 fun SettingsScreen(viewModel: MainViewModel) {
     val context = LocalContext.current
     val prefs = viewModel.prefs
+    val uiMetrics = LocalUiMetrics.current
     val isMudita = remember { DeviceHelper.isMuditaKompakt() }
     val versionName = remember {
         try {
@@ -377,9 +379,16 @@ fun SettingsScreen(viewModel: MainViewModel) {
                 )
             }
             add {
+                // Compact screens render icons at 56/64dp regardless of the stored 72/80dp
+                // preference, so show the size the user will actually see.
+                val displaySize = if (uiMetrics.compact) {
+                    if (iconSize == PrefsManager.ICON_SIZE_SMALL) 56 else 64
+                } else {
+                    iconSize
+                }
                 SettingsCycleRow(
                     title = stringResource(R.string.icon_size),
-                    description = stringResource(R.string.icon_size_value, iconSize, iconSize),
+                    description = stringResource(R.string.icon_size_value, displaySize, displaySize),
                     onClick = {
                         iconSize = if (iconSize == PrefsManager.ICON_SIZE_SMALL)
                             PrefsManager.ICON_SIZE_LARGE else PrefsManager.ICON_SIZE_SMALL
@@ -2171,7 +2180,7 @@ private fun LockscreenAppsDialog(
                             onClick = { page-- },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
                     }
 
                     Row(
@@ -2198,7 +2207,7 @@ private fun LockscreenAppsDialog(
                             onClick = { page++ },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
                     }
                 }
             }
@@ -2328,7 +2337,7 @@ fun HiddenAppsDialog(
                             onClick = { page-- },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
                     }
 
                     Row(
@@ -2355,7 +2364,7 @@ fun HiddenAppsDialog(
                             onClick = { page++ },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
                     }
                 }
             }
@@ -2388,14 +2397,18 @@ private fun SettingsCategoryGrid(
     onSelect: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val metrics = LocalUiMetrics.current
+    // Short screens cannot fit five 2-column rows. Three columns give four rows and
+    // enough height for the icon and both text lines.
+    val columns = if (metrics.compact) 3 else 2
     Column(modifier) {
-        settingsCategories.chunked(2).forEach { pair ->
+        settingsCategories.chunked(columns).forEach { rowItems ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
             ) {
-                pair.forEach { info ->
+                rowItems.forEach { info ->
                     SettingsCategoryCard(
                         info = info,
                         onClick = { onSelect(info.sectionTitleRes) },
@@ -2405,7 +2418,9 @@ private fun SettingsCategoryGrid(
                             .padding(4.dp),
                     )
                 }
-                if (pair.size == 1) Spacer(Modifier.weight(1f))
+                repeat(columns - rowItems.size) {
+                    Spacer(Modifier.weight(1f))
+                }
             }
         }
     }
@@ -2417,12 +2432,16 @@ private fun SettingsCategoryCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val metrics = LocalUiMetrics.current
     val ink = LocalInk.current
     Column(
         modifier = modifier
             .border(2.dp, ink, RoundedCornerShape(14.dp))
             .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 10.dp),
+            .padding(
+                horizontal = if (metrics.compact) 6.dp else 12.dp,
+                vertical = if (metrics.compact) 4.dp else 10.dp,
+            ),
         verticalArrangement = Arrangement.Center,
     ) {
         Icon(
@@ -2431,23 +2450,25 @@ private fun SettingsCategoryCard(
             tint = ink,
             modifier = Modifier
                 .align(Alignment.End)
-                .size(30.dp),
+                .size(if (metrics.compact) 22.dp else 30.dp),
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(if (metrics.compact) 2.dp else 6.dp))
         Text(
             text = stringResource(info.cardTitleRes),
-            fontSize = 19.sp,
+            fontSize = if (metrics.compact) 14.sp else 19.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = LatoFamily,
             color = ink,
             maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
         )
         Text(
             text = stringResource(info.subtitleRes),
-            fontSize = 15.sp,
+            fontSize = if (metrics.compact) 11.sp else 15.sp,
             fontFamily = LatoFamily,
             color = ink,
-            maxLines = 2,
+            maxLines = if (metrics.compact) 1 else 2,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
