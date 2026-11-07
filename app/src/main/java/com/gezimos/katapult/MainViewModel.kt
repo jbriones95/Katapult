@@ -169,7 +169,18 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         } catch (_: Exception) {}
     }
 
-    val gridColumns = 3
+    /**
+     * A square screen is wider relative to its height than the Kompakt, so four columns fit
+     * while keeping roughly the same icon size. On a 360x360dp display that is four rows of
+     * four (16 apps) instead of four rows of three (12), and still at least 12 apps when
+     * system bars take some of the height.
+     */
+    val gridColumns: Int
+        get() {
+            val configuration = getApplication<Application>().resources.configuration
+            val compact = configuration.screenHeightDp in 1..479
+            return if (compact && configuration.screenWidthDp >= 330) 4 else 3
+        }
     var appsPerPage by mutableIntStateOf(12)
         private set
     val totalPages: Int by derivedStateOf {

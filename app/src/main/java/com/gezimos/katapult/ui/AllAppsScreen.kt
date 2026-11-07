@@ -95,6 +95,7 @@ import kotlin.math.abs
 @Composable
 fun AllAppsScreen(viewModel: MainViewModel, iconPicker: ActivityResultLauncher<Array<String>>) {
     val context = LocalContext.current
+    val metrics = LocalUiMetrics.current
     var showResetConfirm by remember { mutableStateOf(false) }
 
     var showReorderHint by remember { mutableStateOf(false) }
@@ -118,7 +119,7 @@ fun AllAppsScreen(viewModel: MainViewModel, iconPicker: ActivityResultLauncher<A
                 else Modifier
             )
             .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
-            .padding(PagePadding)
+            .padding(metrics.pagePadding)
             .pointerInput(viewModel.prefs.verticalAppGestures) {
                 val threshold = 17.5.dp.toPx()
                 var accumulated = 0f
@@ -164,7 +165,7 @@ fun AllAppsScreen(viewModel: MainViewModel, iconPicker: ActivityResultLauncher<A
             val refresh = viewModel.shortcutRefresh
             val counts = if (showBadges) viewModel.notificationCounts else emptyMap()
             val highlight = if (reorder) viewModel.reorderHighlightIndex else -1
-            val rowHeight = if (hideLabels) AllAppsRowHeightNoLabels else AllAppsRowHeight
+            val rowHeight = if (hideLabels) metrics.rowHeightNoLabels else metrics.rowHeight
             val measuredRows = (maxHeight / rowHeight).toInt().coerceAtLeast(1)
             val perPage = if (reorder) viewModel.appsPerPage else measuredRows * columns
             val rows = perPage / columns
@@ -226,7 +227,7 @@ fun AllAppsScreen(viewModel: MainViewModel, iconPicker: ActivityResultLauncher<A
                                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                     Box(Modifier.size(LocalIconSize.current))
                                     Spacer(Modifier.height(4.dp))
-                                    Text("", fontSize = 18.sp)
+                                    Text("", fontSize = metrics.labelTextSize)
                                 }
                             }
                         }
@@ -279,7 +280,7 @@ fun AllAppsScreen(viewModel: MainViewModel, iconPicker: ActivityResultLauncher<A
         BottomSheet(onDismiss = { showResetConfirm = false }) {
             Text(
                 text = stringResource(R.string.reset_order_confirm),
-                fontSize = 18.sp,
+                fontSize = metrics.menuTextSize,
                 fontFamily = LatoFamily,
                 color = LocalInk.current,
                 modifier = Modifier.padding(bottom = 16.dp),
@@ -294,10 +295,11 @@ fun AllAppsScreen(viewModel: MainViewModel, iconPicker: ActivityResultLauncher<A
 
 @Composable
 private fun PageNavRow(viewModel: MainViewModel, wrap: Boolean, onResetOrder: () -> Unit) {
+    val metrics = LocalUiMetrics.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 16.dp),
+            .padding(bottom = metrics.pageNavPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
@@ -330,16 +332,16 @@ private fun PageNavRow(viewModel: MainViewModel, wrap: Boolean, onResetOrder: ()
                         contentDescription = stringResource(R.string.cd_reset_order),
                         tint = LocalInk.current,
                         modifier = Modifier
-                            .size(ArrowSize)
-                            .border(2.5.dp, LocalInk.current, buttonShape)
+                            .size(metrics.arrowSize)
+                            .border(metrics.iconBorderWidth, LocalInk.current, buttonShape)
                             .clickable(onClick = onResetOrder)
                             .padding(8.dp),
                     )
                     Spacer(Modifier.width(8.dp))
                     Box(
                         modifier = Modifier
-                            .height(ArrowSize)
-                            .border(2.5.dp, LocalInk.current, buttonShape)
+                            .height(metrics.arrowSize)
+                            .border(metrics.iconBorderWidth, LocalInk.current, buttonShape)
                             .clickable { viewModel.finishReorder() }
                             .padding(horizontal = 12.dp),
                         contentAlignment = Alignment.Center,
@@ -404,6 +406,7 @@ private fun AppGridItem(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
 ) {
+    val metrics = LocalUiMetrics.current
     val iconSize = LocalIconSize.current
     val density = LocalDensity.current
     val sizePx = remember(iconSize, density) { with(density) { iconSize.roundToPx() } }
@@ -435,14 +438,14 @@ private fun AppGridItem(
             Spacer(Modifier.height(4.dp))
             Text(
                 text = app.label,
-                fontSize = 18.sp,
+                fontSize = metrics.labelTextSize,
                 fontFamily = LatoFamily,
                 color = LocalInk.current,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.width(110.dp),
+                modifier = Modifier.width(metrics.labelWidth),
             )
         }
     }

@@ -113,6 +113,7 @@ fun HomeScreen(
     iconPicker: ActivityResultLauncher<Array<String>>,
 ) {
     val context = LocalContext.current
+    val metrics = LocalUiMetrics.current
     var showMenu by remember { mutableStateOf(false) }
     var pickerSlot by remember { mutableStateOf<String?>(null) }
     var showHiddenApps by remember { mutableStateOf(false) }
@@ -221,14 +222,18 @@ fun HomeScreen(
                     else Modifier
                 )
                 .windowInsetsPadding(WindowInsets.navigationBarsIgnoringVisibility)
-                .padding(PagePadding),
+                .padding(metrics.pagePadding),
         ) {
-        val gridRowHeight = if (viewModel.prefs.hideAppNames) AllAppsRowHeightNoLabels else AllAppsRowHeight
-        val gridRows = (maxHeight / gridRowHeight).toInt().coerceAtLeast(1)
-        val dockRows = if (viewModel.prefs.homeExtraRow) 2 else 1
-        val topWeight = (gridRows - dockRows).coerceAtLeast(1).toFloat()
+        // The dock rows wrap to their content so they stay anchored to the bottom while the
+        // clock/music block takes the remaining space. Proportional weights made the dock
+        // collapse on short screens once the clock block needed most of the height.
+        // A square screen also cannot fit the clock, music widget and a two-row dock at
+        // once, so drop the music widget rather than clipping the clock.
+        val showMusic = viewModel.mediaInfo != null &&
+            !viewModel.prefs.disableMusicWidget &&
+            !(metrics.compact && viewModel.prefs.homeExtraRow)
         Column(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxWidth().weight(topWeight)) {
+            Column(modifier = Modifier.fillMaxWidth().weight(1f)) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -259,7 +264,7 @@ fun HomeScreen(
                     showAlarm = viewModel.prefs.showAlarm,
                     weather = viewModel.weather,
                     islandsActive = viewModel.prefs.homeIslands,
-                    topSpacing = if (viewModel.prefs.hideStatusBar) 32.dp else 8.dp,
+                    topSpacing = if (viewModel.prefs.hideStatusBar) metrics.topSpacingNoStatusBar else metrics.topSpacing,
                     onClockClick = {
                         val saved = viewModel.prefs.loadShortcut("clock")
                         if (saved != null) {
@@ -296,12 +301,12 @@ fun HomeScreen(
                 )
             }
 
-            if (viewModel.mediaInfo != null && !viewModel.prefs.disableMusicWidget) {
+            if (showMusic) {
                 @Suppress("UnusedBoxWithConstraintsScope")
                 androidx.compose.foundation.layout.BoxWithConstraints(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 8.dp),
+                        .padding(bottom = if (metrics.compact) 2.dp else 8.dp),
                 ) {
                     val columnWidth = maxWidth / 3
                     val iconPad = (columnWidth - LocalIconSize.current) / 2
@@ -325,7 +330,7 @@ fun HomeScreen(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .weight(1f),
+                        .padding(vertical = if (metrics.compact) 4.dp else 8.dp),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -364,7 +369,7 @@ fun HomeScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f),
+                    .padding(vertical = if (metrics.compact) 4.dp else 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
@@ -393,9 +398,11 @@ fun HomeScreen(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             modifier = Modifier.clickable { viewModel.navigateTo(Screen.ALL_APPS) },
                         ) {
-                            val strokeWidth = 2.5.dp
+                            val strokeWidth = metrics.iconBorderWidth
                             val isRounded = viewModel.roundedIcons
                             val tileShape = if (isRounded) RoundedIconShape else CircleShape
+                            val dotSize = if (metrics.compact) 10.dp else 12.dp
+                            val dotSpacing = if (metrics.compact) 4.dp else 6.dp
                             Box(
                                 modifier = Modifier
                                     .size(LocalIconSize.current)
@@ -409,16 +416,16 @@ fun HomeScreen(
                                 contentAlignment = Alignment.Center,
                             ) {
                                 Column(
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    verticalArrangement = Arrangement.spacedBy(dotSpacing),
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                 ) {
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        CircleDot(12.dp, borderWidth = strokeWidth)
-                                        CircleDot(12.dp, borderWidth = strokeWidth)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(dotSpacing)) {
+                                        CircleDot(dotSize, borderWidth = strokeWidth)
+                                        CircleDot(dotSize, borderWidth = strokeWidth)
                                     }
-                                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                                        CircleDot(12.dp, borderWidth = strokeWidth)
-                                        CircleDot(12.dp, borderWidth = strokeWidth)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(dotSpacing)) {
+                                        CircleDot(dotSize, borderWidth = strokeWidth)
+                                        CircleDot(dotSize, borderWidth = strokeWidth)
                                     }
                                 }
                             }
@@ -426,7 +433,7 @@ fun HomeScreen(
                                 Spacer(Modifier.height(4.dp))
                                 Text(
                                     text = "",
-                                    fontSize = 18.sp,
+                                    fontSize = metrics.labelTextSize,
                                     fontFamily = LatoFamily,
                                     color = LocalInk.current,
                                 )
@@ -544,8 +551,9 @@ private fun AppPickerDialog(
     onDismiss: () -> Unit,
     onSelected: (com.gezimos.katapult.model.AppModel) -> Unit,
 ) {
+    val metrics = LocalUiMetrics.current
     val apps = remember { viewModel.getAllApps() }
-    val itemsPerPage = 6
+    val itemsPerPage = if (metrics.compact) 4 else 6
     var page by remember { mutableIntStateOf(0) }
     val totalPages = (apps.size + itemsPerPage - 1) / itemsPerPage
     val pageApps = remember(page) {
@@ -559,7 +567,7 @@ private fun AppPickerDialog(
     BottomSheet(onDismiss = onDismiss) {
         Text(
             text = title,
-            fontSize = 18.sp,
+            fontSize = metrics.menuTextSize,
             fontWeight = FontWeight.Bold,
             fontFamily = LatoFamily,
             color = LocalInk.current,
@@ -584,7 +592,9 @@ private fun AppPickerDialog(
                 if (i < pageApps.size) {
                     val app = pageApps[i]
                     val context = LocalContext.current
-                    val sizePx = remember { (36 * context.resources.displayMetrics.density).toInt() }
+                    val density = LocalDensity.current
+                    val pickerIconSize = if (metrics.compact) 30.dp else 36.dp
+                    val sizePx = remember(pickerIconSize, density) { with(density) { pickerIconSize.roundToPx() } }
                     val bitmap = remember(app.key) {
                         if (app.shortcutId.isNotEmpty()) {
                             IconUtility.loadShortcutIcon(context, app.packageName, app.shortcutId, sizePx)
@@ -596,18 +606,18 @@ private fun AppPickerDialog(
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable { onSelected(app) }
-                            .padding(vertical = 10.dp),
+                            .padding(vertical = if (metrics.compact) 6.dp else 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        AppIconCircle(bitmap = bitmap, size = 36.dp, borderWidth = 1.5.dp, shape = iconShape)
+                        AppIconCircle(bitmap = bitmap, size = pickerIconSize, borderWidth = 1.5.dp, shape = iconShape)
                         Spacer(Modifier.width(12.dp))
-                        Text(app.label, fontSize = 18.sp, fontFamily = LatoFamily, color = LocalInk.current)
+                        Text(app.label, fontSize = metrics.labelTextSize, fontFamily = LatoFamily, color = LocalInk.current)
                     }
                 } else {
-                    Row(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
-                        Box(Modifier.size(36.dp))
+                    Row(Modifier.fillMaxWidth().padding(vertical = if (metrics.compact) 6.dp else 10.dp)) {
+                        Box(Modifier.size(if (metrics.compact) 30.dp else 36.dp))
                         Spacer(Modifier.width(12.dp))
-                        Text("", fontSize = 18.sp)
+                        Text("", fontSize = metrics.labelTextSize)
                     }
                 }
             }
@@ -622,7 +632,7 @@ private fun AppPickerDialog(
                             onClick = { page-- },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(metrics.arrowSize))
                     }
 
                     Row(
@@ -649,7 +659,7 @@ private fun AppPickerDialog(
                             onClick = { page++ },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(metrics.arrowSize))
                     }
                 }
             }
@@ -666,8 +676,9 @@ internal fun MusicWidget(
     onNext: () -> Unit,
     onStop: () -> Unit,
     cornerRadius: Dp = 19.dp,
-    borderWidth: Dp = 2.5.dp,
+    borderWidth: Dp = LocalUiMetrics.current.iconBorderWidth,
 ) {
+    val metrics = LocalUiMetrics.current
     val widgetShape = RoundedCornerShape(cornerRadius)
 
     val albumArt = remember(info.controller.metadata) {
@@ -687,7 +698,7 @@ internal fun MusicWidget(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .height(90.dp)
+            .height(metrics.musicWidgetHeight)
             .clip(widgetShape)
             .background(LocalSurface.current)
             .border(borderWidth, LocalInk.current, widgetShape),
@@ -702,7 +713,7 @@ internal fun MusicWidget(
         ) {
             Text(
                 text = songLabel.ifEmpty { noMediaLabel },
-                fontSize = 18.sp,
+                fontSize = metrics.musicTitleSize,
                 fontFamily = LatoFamily,
                 color = LocalInk.current,
                 maxLines = 1,
@@ -713,7 +724,7 @@ internal fun MusicWidget(
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(2.5.dp)
+                .height(metrics.iconBorderWidth)
                 .background(LocalInk.current)
         )
 
@@ -752,12 +763,12 @@ internal fun MusicWidget(
                         imageVector = Icons.Rounded.MusicNote,
                         contentDescription = stringResource(R.string.cd_music),
                         tint = LocalInk.current,
-                        modifier = Modifier.size(28.dp),
+                        modifier = Modifier.size(metrics.musicControlSize - 4.dp),
                     )
                 }
             }
 
-            Box(Modifier.fillMaxHeight().width(2.5.dp).background(LocalInk.current))
+            Box(Modifier.fillMaxHeight().width(metrics.iconBorderWidth).background(LocalInk.current))
 
             Row(
                 modifier = Modifier
@@ -773,7 +784,7 @@ internal fun MusicWidget(
                     contentDescription = stringResource(R.string.cd_previous),
                     tint = LocalInk.current,
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(metrics.musicControlSize)
                         .clickable { onPrevious() },
                 )
 
@@ -782,7 +793,7 @@ internal fun MusicWidget(
                     contentDescription = stringResource(R.string.cd_play_pause),
                     tint = LocalInk.current,
                     modifier = Modifier
-                        .size(42.dp)
+                        .size(metrics.musicPlaySize)
                         .clickable { onPlayPause() },
                 )
 
@@ -791,7 +802,7 @@ internal fun MusicWidget(
                     contentDescription = stringResource(R.string.cd_next),
                     tint = LocalInk.current,
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(metrics.musicControlSize)
                         .clickable { onNext() },
                 )
 
@@ -800,7 +811,7 @@ internal fun MusicWidget(
                     contentDescription = stringResource(R.string.cd_stop),
                     tint = LocalInk.current,
                     modifier = Modifier
-                        .size(32.dp)
+                        .size(metrics.musicControlSize)
                         .clickable { onStop() },
                 )
             }
@@ -819,6 +830,7 @@ private fun ShortcutItem(
     onLongClick: () -> Unit,
 ) {
     val context = LocalContext.current
+    val metrics = LocalUiMetrics.current
     val pkg = remember(refresh) { viewModel.getShortcutPackage(slot) }
     val activityName = remember(refresh) { viewModel.getShortcutActivity(slot) }
     val slotShortcutId = remember(refresh) { viewModel.prefs.loadSlotShortcutId(slot) }
@@ -846,7 +858,7 @@ private fun ShortcutItem(
         }
         if (!viewModel.prefs.hideAppNames) {
             Spacer(Modifier.height(4.dp))
-            val labelWidth = if (viewModel.prefs.homeIslands) 110.dp - 24.dp else 110.dp
+            val labelWidth = if (viewModel.prefs.homeIslands) metrics.labelWidth - 24.dp else metrics.labelWidth
             var lineLeft by remember { mutableFloatStateOf(0f) }
             var lineRight by remember { mutableFloatStateOf(0f) }
             Text(
@@ -861,7 +873,7 @@ private fun ShortcutItem(
                         vPad = 2.dp,
                         bounds = { lineLeft to lineRight },
                     ),
-                fontSize = 18.sp,
+                fontSize = metrics.labelTextSize,
                 fontFamily = LatoFamily,
                 color = LocalInk.current,
                 maxLines = 1,

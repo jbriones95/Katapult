@@ -573,7 +573,7 @@ private fun PickerPageBar(page: Int, totalPages: Int, onPrev: () -> Unit, onNext
         if (page > 0) {
             ArrowButton(iconRes = R.drawable.ic_arrow_left, onClick = onPrev)
         } else {
-            Spacer(Modifier.size(ArrowSize))
+            Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
         }
         Row(
             Modifier.weight(1f),
@@ -595,7 +595,7 @@ private fun PickerPageBar(page: Int, totalPages: Int, onPrev: () -> Unit, onNext
         if (page < totalPages - 1) {
             ArrowButton(iconRes = R.drawable.ic_arrow_right, onClick = onNext)
         } else {
-            Spacer(Modifier.size(ArrowSize))
+            Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
         }
     }
 }
@@ -766,7 +766,7 @@ private fun AppShortcutsDialog(
                             onClick = { page-- },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
                     }
                     Row(
                         Modifier.weight(1f),
@@ -791,7 +791,7 @@ private fun AppShortcutsDialog(
                             onClick = { page++ },
                         )
                     } else {
-                        Spacer(Modifier.size(ArrowSize))
+                        Spacer(Modifier.size(LocalUiMetrics.current.arrowSize))
                     }
                 }
             }

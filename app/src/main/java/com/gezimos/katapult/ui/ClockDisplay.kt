@@ -64,6 +64,7 @@ fun ColumnScope.ClockDisplay(
     onWeatherClick: (() -> Unit)? = null,
     topSpacing: Dp = 32.dp,
 ) {
+    val metrics = LocalUiMetrics.current
     Spacer(Modifier.height(topSpacing))
     val hasWeather = weather != null
     val hasAlarm = showAlarm && alarmTime != null
@@ -85,12 +86,12 @@ fun ColumnScope.ClockDisplay(
                     imageVector = weatherIcon(weather.conditionId, weather.iconInfo),
                     contentDescription = stringResource(R.string.cd_weather),
                     tint = LocalInk.current,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(metrics.statusIconSize),
                 )
                 Spacer(Modifier.width(2.dp))
                 Text(
                     text = stringResource(R.string.weather_temp, weather.temperature, weather.unit),
-                    fontSize = 18.sp,
+                    fontSize = metrics.statusTextSize,
                     fontFamily = LatoFamily,
                     color = LocalInk.current,
                 )
@@ -104,12 +105,12 @@ fun ColumnScope.ClockDisplay(
                 imageVector = Icons.Filled.Notifications,
                 contentDescription = stringResource(R.string.cd_alarm),
                 tint = LocalInk.current,
-                modifier = Modifier.size(18.dp),
+                modifier = Modifier.size(metrics.statusIconSize),
             )
             Spacer(Modifier.width(4.dp))
             Text(
                 text = alarmTime,
-                fontSize = 18.sp,
+                fontSize = metrics.statusTextSize,
                 fontFamily = LatoFamily,
                 color = LocalInk.current,
             )
@@ -140,12 +141,12 @@ fun ColumnScope.ClockDisplay(
                     imageVector = batteryIcon,
                     contentDescription = stringResource(R.string.cd_battery),
                     tint = LocalInk.current,
-                    modifier = Modifier.size(18.dp),
+                    modifier = Modifier.size(metrics.statusIconSize),
                 )
                 Spacer(Modifier.width(2.dp))
                 Text(
                     text = stringResource(R.string.battery_percent, batteryPercent),
-                    fontSize = 18.sp,
+                    fontSize = metrics.statusTextSize,
                     fontFamily = LatoFamily,
                     color = LocalInk.current,
                 )
@@ -168,7 +169,7 @@ fun ColumnScope.ClockDisplay(
     ) {
         Text(
             text = clockTime,
-            fontSize = 72.sp,
+            fontSize = metrics.clockTextSize,
             fontWeight = FontWeight.Bold,
             fontFamily = LatoFamily,
             color = LocalInk.current,
@@ -177,7 +178,7 @@ fun ColumnScope.ClockDisplay(
             Spacer(Modifier.width(4.dp))
             Text(
                 text = clockAmPm,
-                fontSize = 24.sp,
+                fontSize = metrics.clockAmPmTextSize,
                 fontWeight = FontWeight.Bold,
                 fontFamily = LatoFamily,
                 color = LocalInk.current,
@@ -187,7 +188,7 @@ fun ColumnScope.ClockDisplay(
 
     Text(
         text = clockDate,
-        fontSize = 20.sp,
+        fontSize = metrics.dateTextSize,
         fontFamily = LatoFamily,
         color = LocalInk.current,
         modifier = Modifier

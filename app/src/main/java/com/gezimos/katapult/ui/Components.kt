@@ -1,5 +1,6 @@
 package com.gezimos.katapult.ui
 
+import android.content.res.Configuration
 import android.graphics.Bitmap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -46,6 +47,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.translate
 import kotlin.math.roundToInt
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.gezimos.katapult.R
@@ -57,10 +59,76 @@ val LatoFamily = FontFamily(
 
 val IconSize = 72.dp
 val LocalIconSize = staticCompositionLocalOf { IconSize }
-val PagePadding = 8.dp
-val ArrowSize = 40.dp
-val AllAppsRowHeight = 120.dp
-val AllAppsRowHeightNoLabels = 112.dp
+
+/**
+ * Layout metrics for the launcher.
+ *
+ * The default values target the tall 360x600dp e-ink phone the launcher was written for.
+ * Short screens (a square 360x360dp display, for example) cannot fit that layout: the clock
+ * block, music widget and dock overflow, and the 120dp app rows only leave room for two rows.
+ * [Compact] shrinks the type, icons and row heights so the same UI fits a square screen and
+ * the app grid uses four columns (12-16 apps per page) instead of three (6-12).
+ */
+data class UiMetrics(
+    val compact: Boolean = false,
+    val pagePadding: Dp = 8.dp,
+    val arrowSize: Dp = 40.dp,
+    val rowHeight: Dp = 120.dp,
+    val rowHeightNoLabels: Dp = 112.dp,
+    val clockTextSize: TextUnit = 72.sp,
+    val clockAmPmTextSize: TextUnit = 24.sp,
+    val dateTextSize: TextUnit = 20.sp,
+    val statusTextSize: TextUnit = 18.sp,
+    val statusIconSize: Dp = 18.dp,
+    val labelTextSize: TextUnit = 18.sp,
+    val labelWidth: Dp = 110.dp,
+    val iconBorderWidth: Dp = 2.5.dp,
+    val topSpacing: Dp = 8.dp,
+    val topSpacingNoStatusBar: Dp = 32.dp,
+    val musicWidgetHeight: Dp = 90.dp,
+    val musicTitleSize: TextUnit = 18.sp,
+    val musicControlSize: Dp = 32.dp,
+    val musicPlaySize: Dp = 42.dp,
+    val badgeSize: Dp = 26.dp,
+    val badgeTextSize: TextUnit = 14.sp,
+    val pageNavPadding: Dp = 16.dp,
+    val menuTextSize: TextUnit = 18.sp,
+    val menuVerticalPadding: Dp = 16.dp,
+) {
+    companion object {
+        val Compact = UiMetrics(
+            compact = true,
+            pagePadding = 6.dp,
+            arrowSize = 34.dp,
+            rowHeight = 86.dp,
+            rowHeightNoLabels = 76.dp,
+            clockTextSize = 48.sp,
+            clockAmPmTextSize = 16.sp,
+            dateTextSize = 15.sp,
+            statusTextSize = 14.sp,
+            statusIconSize = 14.dp,
+            labelTextSize = 15.sp,
+            labelWidth = 84.dp,
+            iconBorderWidth = 2.dp,
+            topSpacing = 4.dp,
+            topSpacingNoStatusBar = 40.dp,
+            musicWidgetHeight = 64.dp,
+            musicTitleSize = 15.sp,
+            musicControlSize = 24.dp,
+            musicPlaySize = 32.dp,
+            badgeSize = 22.dp,
+            badgeTextSize = 11.sp,
+            pageNavPadding = 8.dp,
+            menuTextSize = 16.sp,
+            menuVerticalPadding = 12.dp,
+        )
+
+        fun forConfiguration(configuration: Configuration): UiMetrics =
+            if (configuration.screenHeightDp in 1..479) Compact else UiMetrics()
+    }
+}
+
+val LocalUiMetrics = staticCompositionLocalOf { UiMetrics() }
 
 val EinkTintMatrix = ColorMatrix(floatArrayOf(
     0f, 0f, 0f, 0f, 0f,
@@ -203,7 +271,7 @@ fun rememberAppIcon(
 }
 
 @Composable
-fun AppIconCircle(bitmap: Bitmap?, size: Dp, borderWidth: Dp = 2.5.dp, shape: Shape = LocalIconShape.current) {
+fun AppIconCircle(bitmap: Bitmap?, size: Dp, borderWidth: Dp = LocalUiMetrics.current.iconBorderWidth, shape: Shape = LocalIconShape.current) {
     val image = remember(bitmap) { bitmap?.asImageBitmap() }
     val filter = LocalIconFilter.current
     Box(
@@ -228,6 +296,7 @@ private val arrowImages = HashMap<Int, ImageBitmap>()
 
 @Composable
 fun ArrowButton(iconRes: Int, onClick: () -> Unit) {
+    val metrics = LocalUiMetrics.current
     val shape = LocalSmallIconShape.current
     val ink = LocalInk.current
     val context = LocalContext.current
@@ -242,11 +311,11 @@ fun ArrowButton(iconRes: Int, onClick: () -> Unit) {
         }
     }
     val filter = remember(ink) { ColorFilter.tint(ink) }
-    val glyph = with(LocalDensity.current) { 20.dp.roundToPx() }
+    val glyph = with(LocalDensity.current) { (metrics.arrowSize / 2).roundToPx() }
     Box(
         modifier = Modifier
-            .size(ArrowSize)
-            .border(2.5.dp, ink, shape)
+            .size(metrics.arrowSize)
+            .border(metrics.iconBorderWidth, ink, shape)
             .clickable(onClick = onClick)
             .drawBehind {
                 val off = ((size.width - glyph) / 2f).roundToInt().toFloat()
@@ -271,18 +340,19 @@ val LocalBadgeShape = compositionLocalOf<Shape> { CircleShape }
 
 @Composable
 fun NotificationBadge(count: Int, modifier: Modifier = Modifier) {
+    val metrics = LocalUiMetrics.current
     val shape = LocalBadgeShape.current
     Box(
         modifier = modifier
-            .size(26.dp)
+            .size(metrics.badgeSize)
             .background(LocalSurface.current, shape)
-            .border(2.5.dp, LocalInk.current, shape),
+            .border(metrics.iconBorderWidth, LocalInk.current, shape),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = if (count > 99) stringResource(R.string.badge_overflow) else count.toString(),
             color = LocalInk.current,
-            fontSize = 14.sp,
+            fontSize = metrics.badgeTextSize,
             fontWeight = FontWeight.Bold,
             fontFamily = LatoFamily,
         )
@@ -295,11 +365,12 @@ fun BottomSheetOption(
     icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     onClick: () -> Unit,
 ) {
+    val metrics = LocalUiMetrics.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(16.dp),
+            .padding(horizontal = 16.dp, vertical = metrics.menuVerticalPadding),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (icon != null) {
@@ -307,13 +378,13 @@ fun BottomSheetOption(
                 imageVector = icon,
                 contentDescription = null,
                 tint = LocalInk.current,
-                modifier = Modifier.size(22.dp),
+                modifier = Modifier.size(if (metrics.compact) 20.dp else 22.dp),
             )
             Spacer(Modifier.width(12.dp))
         }
         Text(
             text = text,
-            fontSize = 18.sp,
+            fontSize = metrics.menuTextSize,
             fontFamily = LatoFamily,
             color = LocalInk.current,
         )
